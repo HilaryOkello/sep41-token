@@ -2,7 +2,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env, String};
 
 use crate::{
     error::ContractError,
-    events::{Approval, Mint, Transfer},
+    events::{Approval, Burn, Mint, Transfer},
     storage::{AllowanceKey, DataKey},
 };
 
@@ -143,6 +143,86 @@ impl HilToken {
             .set(&DataKey::Balance(to.clone()), &(receiver_balance + amount));
 
         Transfer { from, to, amount }.publish(&env);
+
+        Ok(())
+    }
+
+    pub fn burn(env: Env, from: Address, amount: i128) -> Result<(), ContractError> {
+        from.require_auth();
+
+        let balance = Self::balance(env.clone(), from.clone());
+
+        if balance < amount {
+            return Err(ContractError::InsufficientFunds);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(balance - amount));
+
+        let total: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
+
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(total - amount));
+
+        Burn { from, amount }.publish(&env);
+
+        Ok(())
+    }
+
+    pub fn burn_from(
+        env: Env,
+        spender: Address,
+        from: Address,
+        amount: i128,
+    ) -> Result<(), ContractError> {
+        spender.require_auth();
+
+        let allowance_key = DataKey::Allowance(AllowanceKey {
+            from: from.clone(),
+            spender: spender.clone(),
+        });
+
+        let allowance: i128 = env
+            .storage()
+            .persistent()
+            .get(&allowance_key)
+            .unwrap_or(0);
+
+        if allowance < amount {
+            return Err(ContractError::InsufficientAllowance);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&allowance_key, &(allowance - amount));
+
+        let balance = Self::balance(env.clone(), from.clone());
+
+        if balance < amount {
+            return Err(ContractError::InsufficientFunds);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(balance - amount));
+
+        let total: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
+
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(total - amount));
+
+        Burn { from, amount }.publish(&env);
 
         Ok(())
     }
