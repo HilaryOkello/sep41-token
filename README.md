@@ -1,22 +1,96 @@
-# Soroban Project
+# HilaryToken (HIL)
+
+A SEP-41 compliant fungible token on the Stellar network, built with Soroban smart contracts.
+
+## Token Details
+
+| Property | Value |
+|---|---|
+| Name | HilaryToken |
+| Symbol | HIL |
+| Decimals | 7 |
+| Standard | SEP-41 |
+
+## Features
+
+- **Mint** — admin-only, issues new tokens to any address
+- **Transfer** — move tokens between addresses
+- **Transfer From** — spender moves tokens on behalf of another address using an approved allowance
+- **Burn** — holder destroys their own tokens, reducing total supply
+- **Burn From** — spender burns tokens on behalf of another address using an approved allowance
+- **Approve / Allowance** — grant and query spending permissions
 
 ## Project Structure
 
-This repository uses the recommended structure for a Soroban project:
-
-```text
-.
-├── contracts
-│   └── hello_world
-│       ├── src
-│       │   ├── lib.rs
-│       │   └── test.rs
-│       └── Cargo.toml
-├── Cargo.toml
-└── README.md
+```
+contracts/
+└── sep41-token/
+    └── src/
+        ├── lib.rs          # module declarations
+        ├── our_token.rs    # contract implementation
+        ├── token_trait.rs  # SEP-41 TokenInterface trait
+        ├── storage.rs      # storage key types
+        ├── events.rs       # contract events
+        ├── error.rs        # error types
+        └── test.rs         # unit tests
 ```
 
-- New Soroban contracts can be put in `contracts`, each in their own directory. There is already a `hello_world` contract in there to get you started.
-- If you initialized this project with any other example contracts via `--with-example`, those contracts will be in the `contracts` directory as well.
-- Contracts should have their own `Cargo.toml` files that rely on the top-level `Cargo.toml` workspace for their dependencies.
-- Frontend libraries can be added to the top-level directory as well. If you initialized this project with a frontend template via `--frontend-template` you will have those files already included.
+## Prerequisites
+
+- [Rust](https://www.rust-lang.org/tools/install)
+- [Stellar CLI](https://developers.stellar.org/docs/tools/developer-tools/stellar-cli)
+
+```bash
+rustup target add wasm32-unknown-unknown
+```
+
+## Build
+
+```bash
+stellar contract build
+```
+
+The compiled WASM will be at `target/wasm32-unknown-unknown/release/sep41_token.wasm`.
+
+## Test
+
+```bash
+cargo test
+```
+
+## Deploy to Testnet
+
+Generate and fund a keypair:
+
+```bash
+stellar keys generate --global deployer --network testnet
+stellar keys fund deployer --network testnet
+```
+
+Copy `.env.example` to `.env` inside `contracts/sep41-token/` and fill in your values, then:
+
+```bash
+cd contracts/sep41-token
+make deploy
+```
+
+This builds, uploads the WASM, and deploys in one step. The contract ID is saved to `contract_id.txt`.
+
+To query the admin balance after deploy:
+
+```bash
+make balance
+```
+
+## Deployed Contract
+
+| Network | Contract ID |
+|---|---|
+| Testnet | _to be updated after deployment_ |
+
+## Design Notes
+
+- `__constructor` runs on deployment — mints `initial_supply` to `admin` automatically
+- `instance` storage holds `Admin` and `TotalSupply` (contract-level, lives with the contract)
+- `persistent` storage holds per-address `Balance` and `Allowance` entries
+- All token functions implement `TokenInterface` for compile-time SEP-41 compliance
