@@ -1,16 +1,35 @@
-use soroban_sdk::{contract, contractimpl, Address, Env, IntoVal, String};
+use soroban_sdk::{contract, contractimpl, Address, Env, String};
 
 use crate::{
     error::ContractError,
-    events::{Approval, Transfer},
+    events::{Approval, Mint, Transfer},
     storage::{AllowanceKey, DataKey},
 };
 
 #[contract]
-pub struct SibToken;
+pub struct HilToken;
 
 #[contractimpl]
-impl SibToken {
+impl HilToken {
+    pub fn __constructor(env: Env, admin: Address, initial_supply: i128) {
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::TotalSupply, &0i128);
+        Self::mint_to(&env, &admin, initial_supply);
+    }
+
+    pub fn mint(env: Env, to: Address, amount: i128) -> Result<(), ContractError> {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .unwrap();
+        admin.require_auth();
+
+        Self::mint_to(&env, &to, amount);
+
+        Ok(())
+    }
+
     pub fn balance(env: Env, id: Address) -> i128 {
         env.storage()
             .persistent()
@@ -34,12 +53,6 @@ impl SibToken {
     ) -> Result<(), ContractError> {
         from.require_auth();
 
-        let from_balance = Self::balance(env.clone(), from.clone());
-
-        if from_balance < amount {
-            return Err(ContractError::InsufficientFunds);
-        }
-
         let key = DataKey::Allowance(AllowanceKey {
             from: from.clone(),
             spender: spender.clone(),
@@ -50,8 +63,8 @@ impl SibToken {
         Approval {
             from,
             spender,
-            amount: amount.try_into().unwrap(),
-            live_until_ledger: live_until_ledger.into_val(&env),
+            amount,
+            live_until_ledger,
         }
         .publish(&env);
 
@@ -59,14 +72,14 @@ impl SibToken {
     }
 
     pub fn transfer(
-        env: &Env,
+        env: Env,
         from: Address,
         to: Address,
         amount: i128,
     ) -> Result<(), ContractError> {
         from.require_auth();
-        let sender_balance = Self::balance(env.clone(), from.clone());
 
+        let sender_balance = Self::balance(env.clone(), from.clone());
         let receiver_balance = Self::balance(env.clone(), to.clone());
 
         if sender_balance < amount {
@@ -75,31 +88,54 @@ impl SibToken {
 
         env.storage()
             .persistent()
-            .set(&sender_balance, &(sender_balance - amount));
+            .set(&DataKey::Balance(from.clone()), &(sender_balance - amount));
 
         env.storage()
             .persistent()
-            .set(&receiver_balance, &(receiver_balance + amount));
+            .set(&DataKey::Balance(to.clone()), &(receiver_balance + amount));
 
-        Transfer {
-            from,
-            to,
-            amount: amount.try_into().unwrap(),
-        }
-        .publish(env);
+        Transfer { from, to, amount }.publish(&env);
 
         Ok(())
     }
 
     pub fn decimals(_env: Env) -> u32 {
-        18
+        7
     }
 
     pub fn name(env: Env) -> String {
-        String::from_str(&env, "SibToken")
+        String::from_str(&env, "HilaryToken")
     }
 
     pub fn symbol(env: Env) -> String {
-        String::from_str(&env, "SIB")
+        String::from_str(&env, "HIL")
+    }
+
+    fn mint_to(env: &Env, to: &Address, amount: i128) {
+        let balance: i128 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Balance(to.clone()))
+            .unwrap_or(0);
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(to.clone()), &(balance + amount));
+
+        let total: i128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0);
+
+        env.storage()
+            .instance()
+            .set(&DataKey::TotalSupply, &(total + amount));
+
+        Mint {
+            to: to.clone(),
+            amount,
+        }
+        .publish(env);
     }
 }
