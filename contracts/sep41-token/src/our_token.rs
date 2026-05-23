@@ -71,6 +71,54 @@ impl HilToken {
         Ok(())
     }
 
+    pub fn transfer_from(
+        env: Env,
+        spender: Address,
+        from: Address,
+        to: Address,
+        amount: i128,
+    ) -> Result<(), ContractError> {
+        spender.require_auth();
+
+        let allowance_key = DataKey::Allowance(AllowanceKey {
+            from: from.clone(),
+            spender: spender.clone(),
+        });
+
+        let allowance: i128 = env
+            .storage()
+            .persistent()
+            .get(&allowance_key)
+            .unwrap_or(0);
+
+        if allowance < amount {
+            return Err(ContractError::InsufficientAllowance);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&allowance_key, &(allowance - amount));
+
+        let sender_balance = Self::balance(env.clone(), from.clone());
+        let receiver_balance = Self::balance(env.clone(), to.clone());
+
+        if sender_balance < amount {
+            return Err(ContractError::InsufficientFunds);
+        }
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(from.clone()), &(sender_balance - amount));
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Balance(to.clone()), &(receiver_balance + amount));
+
+        Transfer { from, to, amount }.publish(&env);
+
+        Ok(())
+    }
+
     pub fn transfer(
         env: Env,
         from: Address,
