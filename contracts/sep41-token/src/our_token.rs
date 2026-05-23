@@ -4,6 +4,7 @@ use crate::{
     error::ContractError,
     events::{Approval, Burn, Mint, Transfer},
     storage::{AllowanceKey, DataKey},
+    token_trait::TokenInterface,
 };
 
 #[contract]
@@ -239,6 +240,13 @@ impl HilToken {
         String::from_str(&env, "HIL")
     }
 
+    pub fn total_supply(env: Env) -> i128 {
+        env.storage()
+            .instance()
+            .get(&DataKey::TotalSupply)
+            .unwrap_or(0)
+    }
+
     fn mint_to(env: &Env, to: &Address, amount: i128) {
         let balance: i128 = env
             .storage()
@@ -265,5 +273,47 @@ impl HilToken {
             amount,
         }
         .publish(env);
+    }
+}
+
+impl TokenInterface for HilToken {
+    fn allowance(env: Env, from: Address, spender: Address) -> i128 {
+        HilToken::allowance(env, from, spender)
+    }
+
+    fn approve(env: Env, from: Address, spender: Address, amount: i128, live_until_ledger: u32) {
+        HilToken::approve(env, from, spender, amount, live_until_ledger).unwrap()
+    }
+
+    fn balance(env: Env, id: Address) -> i128 {
+        HilToken::balance(env, id)
+    }
+
+    fn transfer(env: Env, from: Address, to: Address, amount: i128) {
+        HilToken::transfer(env, from, to, amount).unwrap()
+    }
+
+    fn transfer_from(env: Env, spender: Address, from: Address, to: Address, amount: i128) {
+        HilToken::transfer_from(env, spender, from, to, amount).unwrap()
+    }
+
+    fn burn(env: Env, from: Address, amount: i128) {
+        HilToken::burn(env, from, amount).unwrap()
+    }
+
+    fn burn_from(env: Env, spender: Address, from: Address, amount: i128) {
+        HilToken::burn_from(env, spender, from, amount).unwrap()
+    }
+
+    fn decimals(env: Env) -> u32 {
+        HilToken::decimals(env)
+    }
+
+    fn name(env: Env) -> String {
+        HilToken::name(env)
+    }
+
+    fn symbol(env: Env) -> String {
+        HilToken::symbol(env)
     }
 }

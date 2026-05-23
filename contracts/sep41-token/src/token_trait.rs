@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Env, MuxedAddress, String};
+use soroban_sdk::{Address, Env, String};
 
 pub trait TokenInterface {
     /// Returns the allowance for `spender` to transfer from `from`.
@@ -57,7 +57,7 @@ pub trait TokenInterface {
     /// - data - `amount: i128` or `{ amount: i128, to_muxed_id: Option<u64 | String | BytesN<32>> }`
     /// If the transfer involves a muxed address the address and muxed details
     /// are separated in the event.
-    fn transfer(env: Env, from: Address, to: MuxedAddress, amount: i128);
+    fn transfer(env: Env, from: Address, to: Address, amount: i128);
 
     /// Transfer `amount` from `from` to `to`, consuming the allowance of
     /// `spender`. Authorized by spender (`spender.require_auth()`).
