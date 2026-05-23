@@ -12,6 +12,8 @@ pub struct HilToken;
 
 #[contractimpl]
 impl HilToken {
+    // Soroban calls __constructor automatically when the contract is deployed.
+    // It is never invoked directly after that.
     pub fn __constructor(env: Env, admin: Address, initial_supply: i128) {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::TotalSupply, &0i128);
@@ -96,6 +98,7 @@ impl HilToken {
             return Err(ContractError::InsufficientAllowance);
         }
 
+        // Decrement allowance before touching balances to fail fast on bad input.
         env.storage()
             .persistent()
             .set(&allowance_key, &(allowance - amount));
@@ -247,6 +250,8 @@ impl HilToken {
             .unwrap_or(0)
     }
 
+    // mint_to skips admin auth so the constructor can mint before admin is set as a signer.
+    // Public mint() wraps this with admin.require_auth().
     fn mint_to(env: &Env, to: &Address, amount: i128) {
         let balance: i128 = env
             .storage()
@@ -276,6 +281,8 @@ impl HilToken {
     }
 }
 
+// Implementing TokenInterface gives a compile-time guarantee that all SEP-41
+// required functions are present and have the correct signatures.
 impl TokenInterface for HilToken {
     fn allowance(env: Env, from: Address, spender: Address) -> i128 {
         HilToken::allowance(env, from, spender)
