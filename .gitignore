@@ -4,3 +4,8 @@ target
 # Local settings
 .soroban
 .stellar
+.env
+contracts/sep41-token/contract_id.txt
+contracts/sep41-token/upload.log
+contracts/sep41-token/deploy.log
+contracts/sep41-token/wasm_hash.txt

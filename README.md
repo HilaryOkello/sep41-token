@@ -86,7 +86,7 @@ make balance
 
 | Network | Contract ID |
 |---|---|
-| Testnet | _to be updated after deployment_ |
+| Testnet | `CCIVE463U53GPGTJVI7XLNE7FND2PXQ6PEOR7HKZANVERD2Q7K6KKAMG` |
 
 ## Design Notes
 
