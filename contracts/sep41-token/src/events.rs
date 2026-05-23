@@ -7,7 +7,7 @@ pub struct Transfer {
     pub from: Address,
     #[topic]
     pub to: Address,
-    pub amount: u32,
+    pub amount: i128,
 }
 
 #[contractevent]
@@ -17,6 +17,22 @@ pub struct Approval {
     pub from: Address,
     #[topic]
     pub spender: Address,
-    pub amount: u32,
+    pub amount: i128,
     pub live_until_ledger: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Burn {
+    #[topic]
+    pub from: Address,
+    pub amount: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Mint {
+    #[topic]
+    pub to: Address,
+    pub amount: i128,
 }

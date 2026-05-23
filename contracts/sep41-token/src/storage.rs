@@ -10,4 +10,6 @@ pub struct AllowanceKey {
 pub enum DataKey {
     Balance(Address),
     Allowance(AllowanceKey),
+    Admin,
+    TotalSupply,
 }
